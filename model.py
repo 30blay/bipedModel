@@ -1,6 +1,6 @@
 from keras.applications.vgg16 import VGG16
-from keras.layers import Input, Conv2D, Lambda, Dense, Flatten,MaxPooling2D, Dropout
-from keras.models import Model, Sequential
+from keras.layers import Input, Lambda, Dense, Dropout
+from keras.models import Model
 from keras import backend as K
 from keras import models
 from keras.optimizers import Adam
@@ -23,7 +23,7 @@ def get_siamese():
     # merge two encoded inputs with the l1 distance between them
     L1_layer = Lambda(lambda tensors: K.abs(tensors[0] - tensors[1]), output_shape=(4096,))
     L1_distance = L1_layer([left_input, right_input])
-    prediction = Dropout(0.05)(Dense(1, activation='sigmoid')(L1_distance))
+    prediction = Dropout(0.5)(Dense(1, activation='sigmoid')(L1_distance))
 
     siamese_net = Model(inputs=[left_input, right_input], output=prediction)
 
