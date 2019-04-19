@@ -25,7 +25,7 @@ def get_siamese():
     L1_distance = L1_layer([left_input, right_input])
     prediction = Dropout(0.5)(Dense(1, activation='sigmoid')(L1_distance))
 
-    siamese_net = Model(inputs=[left_input, right_input], output=prediction)
+    siamese_net = Model(inputs=[left_input, right_input], outputs=prediction)
 
     optimizer = Adam(lr=0.0001)
     siamese_net.compile(loss="binary_crossentropy", optimizer=optimizer)
