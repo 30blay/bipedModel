@@ -4,6 +4,7 @@ from keras.models import Model
 from keras import backend as K
 from keras import models
 from keras.optimizers import Adam
+from keras.layers.normalization import BatchNormalization
 
 input_shape = (4096,)
 
@@ -23,7 +24,9 @@ def get_siamese():
     # merge two encoded inputs with the l1 distance between them
     L1_layer = Lambda(lambda tensors: K.abs(tensors[0] - tensors[1]), output_shape=(4096,))
     L1_distance = L1_layer([left_input, right_input])
-    prediction = Dropout(0.5)(Dense(1, activation='sigmoid')(L1_distance))
+    normalised_distance = BatchNormalization()(L1_distance)
+    prediction = Dense(1, activation='sigmoid')(normalised_distance)
+    prediction = Dropout(0.4)(prediction)
 
     siamese_net = Model(inputs=[left_input, right_input], outputs=prediction)
 
