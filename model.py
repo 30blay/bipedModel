@@ -5,8 +5,10 @@ from keras import backend as K
 from keras import models
 from keras.optimizers import Adam
 from keras.layers.normalization import BatchNormalization
+import os
 
 input_shape = (4096,)
+weights_path = os.path.dirname(__file__) + '/model_weights.h5'
 
 
 def get_encoder():
@@ -17,7 +19,7 @@ def get_encoder():
     return model
 
 
-def get_siamese():
+def get_siamese(load_weights=True):
     left_input = Input(input_shape)
     right_input = Input(input_shape)
 
@@ -32,5 +34,8 @@ def get_siamese():
 
     optimizer = Adam(lr=0.0001)
     siamese_net.compile(loss="binary_crossentropy", optimizer=optimizer)
+
+    if load_weights:
+        siamese_net.load_weights(weights_path)
 
     return siamese_net
