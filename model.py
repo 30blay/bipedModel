@@ -2,7 +2,7 @@ import skimage.segmentation as seg
 from skimage import io
 from skimage.transform import resize
 import numpy as np
-import PIL
+from PIL import Image
 
 
 class BipedModel:
@@ -11,8 +11,8 @@ class BipedModel:
 
     def extract_features(self, img_path):
         image = io.imread(img_path)
-        sock = self.isolate_sock(image)
-        features = self.histogram(sock)
+        mask = self.isolate_sock(image)
+        features = self.histogram(image, mask)
         return features
 
     def isolate_sock(self, image):
@@ -20,23 +20,24 @@ class BipedModel:
         aspect_ratio = image.shape[1] / image.shape[0]
         resized_height = 100
         resized_width = int(resized_height * aspect_ratio)
-        image = resize(image, (resized_height, resized_width))
+        image = resize(image, (resized_height, resized_width), anti_aliasing=False)
 
         # low min size factor because we don't want the algo to drop a segment
         mask = seg.slic(image, n_segments=2, min_size_factor=0.01, max_size_factor=2, compactness=4)
         image = image * np.repeat(mask[:, :, np.newaxis], 3, axis=2)
 
         # make a 1D vector with all the unmasked pixels
-        sock = image[np.nonzero(image.mean(axis=2))]
-        return sock
+        #sock = image[np.nonzero(image.mean(axis=2))]
+        t2 = time.process_time()
+        return mask
 
     def get_similarity(self, feature1, feature2):
         distance = np.linalg.norm(feature1, feature2)
         similarity = 1-distance
         return similarity
 
-    def histogram(self, sock):
-        total_count = len(sock)
-        count_histogram = PIL.Image.histogram(sock)
-        density_histogram = count_histogram/total_count
+    def histogram(self, image, mask):
+        pil_image = Image.fromarray(image)
+        count_histogram = pil_image.histogram()
+        density_histogram = count_histogram/np.linalg.norm(count_histogram, ord=2, keepdims=True)
         return density_histogram
