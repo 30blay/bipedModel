@@ -1,75 +1,41 @@
-from keras.applications.mobilenetv2 import MobileNetV2
-from keras.layers import Input, Lambda, Dense, Dropout
-from keras.models import Model
-from keras import backend as K
-from keras.optimizers import Adam
-from keras.layers.normalization import BatchNormalization
-import os
-
-weights_path = os.path.dirname(__file__) + '/model_weights.h5'
-input_shape = (224, 224, 3)
+import skimage.segmentation as seg
+from skimage import io
+from skimage.transform import resize
+import numpy as np
+import PIL
 
 
 class BipedModel:
-    def __init__(self, load_weights=True):
-        self.encoder = self.init_encoder()
-        self.latent_shape = (self.encoder.output_shape[1],)
-
-        self.siamese = self.init_siamese(load_weights)
-
-    def init_encoder(self):
-        input_tensor = Input(shape=input_shape)
-        model = MobileNetV2(
-            include_top=False,
-            weights='imagenet',
-            input_tensor=input_tensor,
-            input_shape=input_shape,
-            pooling='avg')
-        return model
-
-    def init_siamese(self, load_weights=True):
-        left_input = Input(self.latent_shape)
-        right_input = Input(self.latent_shape)
-
-        # merge two encoded inputs with the l1 distance between them
-        L1_layer = Lambda(lambda tensors: K.abs(tensors[0] - tensors[1]), output_shape=self.latent_shape)
-        L1_distance = L1_layer([left_input, right_input])
-        normalised_distance = BatchNormalization()(L1_distance)
-        prediction = Dense(1, activation='sigmoid')(normalised_distance)
-        prediction = Dropout(0.4)(prediction)
-
-        siamese_net = Model(inputs=[left_input, right_input], outputs=prediction)
-
-        optimizer = Adam(lr=0.0001)
-        siamese_net.compile(loss="binary_crossentropy", optimizer=optimizer)
-
-        if load_weights:
-            siamese_net.load_weights(weights_path)
-
-        return siamese_net
-
-    def get_encoder(self):
-        return self.encoder
-
-    def get_siamese(self):
-        return self.siamese
+    def __init__(self):
+        pass
 
     def extract_features(self, img_path):
-        from keras.preprocessing import image
-        from keras.preprocessing.image import ImageDataGenerator
-        import numpy as np
+        image = io.imread(img_path)
+        sock = self.isolate_sock(image)
+        features = self.histogram(sock)
+        return features
 
-        datagen = ImageDataGenerator(rescale=1. / 255)
+    def isolate_sock(self, image):
+        # first resize the image for quicker calculations
+        aspect_ratio = image.shape[1] / image.shape[0]
+        resized_height = 100
+        resized_width = int(resized_height * aspect_ratio)
+        image = resize(image, (resized_height, resized_width))
 
-        img = image.load_img(img_path, target_size=input_shape[0:2])
-        x = image.img_to_array(img)
-        x = np.expand_dims(x, axis=0)
-        generator = datagen.flow(x)
+        # low min size factor because we don't want the algo to drop a segment
+        mask = seg.slic(image, n_segments=2, min_size_factor=0.01, max_size_factor=2, compactness=4)
+        image = image * np.repeat(mask[:, :, np.newaxis], 3, axis=2)
 
-        for inputs_batch in generator:
-            features_batch = self.encoder.predict(inputs_batch)
-            return features_batch
+        # make a 1D vector with all the unmasked pixels
+        sock = image[np.nonzero(image.mean(axis=2))]
+        return sock
 
     def get_similarity(self, feature1, feature2):
-        similarity = self.siamese.predict([feature1, feature2])
-        return similarity[0][0]
+        similarity = np.linalg.norm(feature1, feature2)
+        return similarity
+
+    def histogram(self, sock):
+        total_count = len(sock)
+        count_histogram = PIL.Image.histogram(sock)
+        density_histogram = count_histogram/total_count
+        return density_histogram
