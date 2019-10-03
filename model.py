@@ -31,7 +31,8 @@ class BipedModel:
         return sock
 
     def get_similarity(self, feature1, feature2):
-        similarity = np.linalg.norm(feature1, feature2)
+        distance = np.linalg.norm(feature1, feature2)
+        similarity = 1-distance
         return similarity
 
     def histogram(self, sock):
