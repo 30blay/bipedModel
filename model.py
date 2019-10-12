@@ -5,7 +5,6 @@ from skimage.color import rgb2hsv, rgb2gray
 import numpy as np
 from PIL import Image
 from scipy.spatial.distance import cosine as cosine_distance
-import matplotlib.pyplot as plt
 
 
 class BipedModel:
@@ -15,8 +14,8 @@ class BipedModel:
     def extract_features(self, img_path):
         image = io.imread(img_path)
         image = self.resize(image)
-        image, mask = self.isolate_sock(image)
-        features = self.histogram(image, mask)
+        image = self.isolate_sock(image)
+        features = self.histogram(image)
         return features
 
     def resize(self, image):
@@ -37,13 +36,13 @@ class BipedModel:
         mask = mask != 0
         image = image * np.repeat(mask[:, :, np.newaxis], 3, axis=2)
         image = image.astype(int)
-        return image, mask
+        return image
 
     def get_similarity(self, feature1, feature2):
         similarity = 1-cosine_distance(feature1, feature2)
         return similarity
 
-    def histogram(self, image, mask, method='pil_histogram'):
+    def histogram(self, image, method='pil_histogram'):
         # make a linear image with all the unmasked pixels
         sock = image[np.nonzero(image.mean(axis=2))]
         sock = sock[:, np.newaxis, :]
