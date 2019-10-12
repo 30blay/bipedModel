@@ -11,11 +11,15 @@ class BipedModel:
     def __init__(self):
         pass
 
-    def extract_features(self, img_path):
+    def extract_features(self, img_path, return_isolated=False):
         image = io.imread(img_path)
         image = self.resize(image)
         image = self.isolate_sock(image)
         features = self.histogram(image)
+
+        if return_isolated:
+            return features, image
+
         return features
 
     def resize(self, image):
