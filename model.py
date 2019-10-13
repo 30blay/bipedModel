@@ -5,6 +5,7 @@ from skimage.color import rgb2hsv, rgb2gray
 import numpy as np
 from PIL import Image
 from scipy.spatial.distance import cosine as cosine_distance
+import cv2
 
 
 class BipedModel:
@@ -56,9 +57,8 @@ class BipedModel:
             pil_image = Image.fromarray(sock)
             count_histogram = pil_image.histogram()
 
-        if method == 'hue':
-            hsv = rgb2hsv(sock)
-            pass
+        if method == '3D':
+            count_histogram = cv2.calcHist([sock], [0, 1, 2], None, [10, 10, 10], [0, 256])
 
         density_histogram = count_histogram/np.linalg.norm(count_histogram, ord=2, keepdims=True)
         return density_histogram
