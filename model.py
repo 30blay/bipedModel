@@ -5,7 +5,6 @@ from skimage.color import rgb2hsv, rgb2gray
 import numpy as np
 from PIL import Image
 from scipy.spatial.distance import cosine as cosine_distance
-import cv2
 
 
 class BipedModel:
@@ -13,9 +12,7 @@ class BipedModel:
         pass
 
     def extract_features(self, img_path, return_isolated=False):
-        image = io.imread(img_path)
-        image = self.resize(image)
-        image = self.isolate_sock(image)
+        image = self.isolate_sock(img_path)
         features = self.histogram(image)
 
         if return_isolated:
@@ -31,7 +28,9 @@ class BipedModel:
         image = resize(image, (resized_height, resized_width), anti_aliasing=False, preserve_range=True)
         return image
 
-    def isolate_sock(self, image, method='morphological_chan_vese'):
+    def isolate_sock(self, img_path, method='morphological_chan_vese'):
+        image = io.imread(img_path)
+        image = self.resize(image)
         # low min size factor because we don't want the algo to drop a segment
         methods = {
             'slic': self.slic,
@@ -59,7 +58,7 @@ class BipedModel:
 
         if method == '3D':
             sock = sock[:, 0, :]
-            bins_per_dim = 5
+            bins_per_dim = 17
             bin_limits = [pow(255, i/bins_per_dim)for i in range(bins_per_dim+1)]
             bin_limits[0] = 0
             bins = np.array([bin_limits, bin_limits, bin_limits])
