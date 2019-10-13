@@ -47,21 +47,25 @@ class BipedModel:
         similarity = 1-cosine_distance(feature1, feature2)
         return similarity
 
-    def histogram(self, image, method='pil_histogram'):
+    def histogram(self, image, method='3D'):
         # make a linear image with all the unmasked pixels
         sock = image[np.nonzero(image.mean(axis=2))]
         sock = sock[:, np.newaxis, :]
+        sock = np.uint8(sock)
 
         if method == 'pil_histogram':
-            sock = np.uint8(sock)
             pil_image = Image.fromarray(sock)
-            count_histogram = pil_image.histogram()
+            histogram = pil_image.histogram()
 
         if method == '3D':
-            count_histogram = cv2.calcHist([sock], [0, 1, 2], None, [10, 10, 10], [0, 256])
+            sock = sock[:, 0, :]
+            bins_per_dim = 5
+            bin_limits = [pow(255, i/bins_per_dim)for i in range(bins_per_dim+1)]
+            bin_limits[0] = 0
+            bins = np.array([bin_limits, bin_limits, bin_limits])
+            histogram, edges = np.histogramdd(sock, bins=bins)
 
-        density_histogram = count_histogram/np.linalg.norm(count_histogram, ord=2, keepdims=True)
-        return density_histogram
+        return histogram.flatten()
 
     def slic(self, image):
         mask = seg.slic(image, n_segments=2, min_size_factor=0.01, max_size_factor=2, compactness=10)
