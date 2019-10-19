@@ -74,10 +74,10 @@ class BipedModel:
         if method == 'hue':
             sock = rgb2hsv(sock)
             sock = sock[:, 0, :]
-            weights = sock[:, 1] * sock[:, 2] # value times saturation
-            histogram, edges = np.histogramdd(sock[:, 0], bins=[40])
+            weights = sock[:, 1] * sock[:, 2]  # value times saturation
+            histogram, edges = np.histogramdd(sock[:, 0], bins=[40], weights=weights)
 
-        return histogram.flatten()
+        return np.array(histogram).flatten()
 
     def slic(self, image):
         mask = seg.slic(image, n_segments=2, min_size_factor=0.01, max_size_factor=2, compactness=10)
