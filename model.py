@@ -42,11 +42,18 @@ class BipedModel:
         image = image.astype(int)
         return image
 
-    def get_similarity(self, feature1, feature2):
-        similarity = 1-cosine_distance(feature1, feature2)
+    def get_similarity(self, feature1, feature2, method='intersection'):
+        if method == 'cosine':
+            similarity = 1-cosine_distance(feature1, feature2)
+
+        elif method == 'intersection':
+            minima = np.minimum(feature1, feature2)
+            maxima = np.maximum(feature1, feature2)
+            similarity = np.true_divide(np.sum(minima), np.sum(maxima))
         return similarity
 
-    def histogram(self, image, method='3D'):
+    def histogram(self, image, method='3D_rgb'):
+        image = image.astype(int)
         # make a linear image with all the unmasked pixels
         sock = image[np.nonzero(image.mean(axis=2))]
         sock = sock[:, np.newaxis, :]
@@ -56,7 +63,7 @@ class BipedModel:
             pil_image = Image.fromarray(sock)
             histogram = pil_image.histogram()
 
-        if method == '3D':
+        if method == '3D_rgb':
             sock = sock[:, 0, :]
             bins_per_dim = 17
             bin_limits = [pow(255, i/bins_per_dim)for i in range(bins_per_dim+1)]
@@ -64,7 +71,13 @@ class BipedModel:
             bins = np.array([bin_limits, bin_limits, bin_limits])
             histogram, edges = np.histogramdd(sock, bins=bins)
 
-        return histogram.flatten()
+        if method == 'hue':
+            sock = rgb2hsv(sock)
+            sock = sock[:, 0, :]
+            weights = sock[:, 1] * sock[:, 2]  # value times saturation
+            histogram, edges = np.histogramdd(sock[:, 0], bins=[40], weights=weights)
+
+        return np.array(histogram).flatten()
 
     def slic(self, image):
         mask = seg.slic(image, n_segments=2, min_size_factor=0.01, max_size_factor=2, compactness=10)
