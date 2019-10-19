@@ -42,8 +42,14 @@ class BipedModel:
         image = image.astype(int)
         return image
 
-    def get_similarity(self, feature1, feature2):
-        similarity = 1-cosine_distance(feature1, feature2)
+    def get_similarity(self, feature1, feature2, method='intersection'):
+        if method == 'cosine':
+            similarity = 1-cosine_distance(feature1, feature2)
+
+        elif method == 'intersection':
+            minima = np.minimum(feature1, feature2)
+            maxima = np.maximum(feature1, feature2)
+            similarity = np.true_divide(np.sum(minima), np.sum(maxima))
         return similarity
 
     def histogram(self, image, method='3D_rgb'):
